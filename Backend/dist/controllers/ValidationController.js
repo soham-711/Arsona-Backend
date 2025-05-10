@@ -16,13 +16,13 @@ exports.validation = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../models/userModel"));
 const validation = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const token = req.cookies.access_token;
-    console.log(token);
-    if (!token) {
+    const { Token } = req.body;
+    console.log(Token);
+    if (!Token) {
         return res.status(401).send({ message: "Token not found", user: null, success: false });
     }
     try {
-        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || 'secret');
+        const decoded = jsonwebtoken_1.default.verify(Token, process.env.JWT_SECRET || 'secret');
         const userData = yield userModel_1.default.findById(decoded.id);
         if (!userData) {
             return res.status(404).send({ message: "User not found", user: null, success: false });

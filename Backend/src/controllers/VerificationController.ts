@@ -9,23 +9,10 @@ export const Otp_Verification = async (
   req: Request,
   res: Response
 ): Promise<any> => {
-  const { otp } = req.body as { otp?: string };
-  const token = req.cookies.access_token;
-  console.log(token);
-  if (!token) {
-    return res
-      .status(401)
-      .send({ message: "Internal Server Error", user: null, success: false });
-  }
-  const decoded = jwt.verify(
-    token,
-    process.env.JWT_SECRET || "secret"
-  ) as jwt.JwtPayload;
-  const userData = await userModel.findById(decoded.id);
-  const email = userData?.email;
-  console.log(email);
-
-  if (!email || !otp) {
+  console.log(req.body);
+  const { fullOtp, email } = req.body.Data;
+  console.log(email, fullOtp);
+  if (!email || !fullOtp) {
     return res
       .status(400)
       .json({ message: "OTP are required", data: null, success: false });
@@ -39,7 +26,7 @@ export const Otp_Verification = async (
       .json({ message: "No OTP request found for this email", data: null });
   }
 
-  if (record.code !== otp) {
+  if (record.code !== fullOtp) {
     return res
       .status(400)
       .json({ message: "Invalid OTP", data: null, success: false });
@@ -61,48 +48,32 @@ export const Reset_password = async (
   req: Request,
   res: Response
 ): Promise<any> => {
-  const token = req.cookies.access_token;
-  console.log(token);
-
-  if (!token) {
-    return res
-      .status(401)
-      .send({ message: "Internal Server Error", user: null, success: false });
-  }
-  try {
-    const { newPassword, confirmPassword } = req.body as {
+      const { newPassword, confirmPassword, email } = req.body as {
       newPassword?: string;
       confirmPassword?: string;
+      email?:string
     };
 
+  try {
+
     if (!newPassword || !confirmPassword) {
-      return res
-        .status(400)
-        .json({
-          message: "All fields are required",
-          data: null,
-          success: false,
-        });
+      return res.status(400).json({
+        message: "All fields are required",
+        data: null,
+        success: false,
+      });
     }
 
     if (newPassword !== confirmPassword) {
-      return res
-        .status(400)
-        .json({
-          message: "Passwords do not match",
-          data: null,
-          success: false,
-        });
+      return res.status(400).json({
+        message: "Passwords do not match",
+        data: null,
+        success: false,
+      });
     }
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "secret"
-    ) as jwt.JwtPayload;
-    const userData = await userModel.findById(decoded.id);
-    const email = userData?.email;
+    const userData = await userModel.findOne({email});
 
-    const user = await userModel.findOne({ email });
-    if (!user) {
+    if (!userData) {
       return res
         .status(404)
         .json({ message: "User not found", data: null, success: false });
@@ -110,18 +81,22 @@ export const Reset_password = async (
 
     // Optional: Hash new password (recommended)
 
-    user.password = newPassword;
-    await user.save();
-    console.log(user);
-    
+    userData.password = newPassword;
+    await userData.save();
+    console.log(userData);
+
     return res
       .status(200)
-      .json({ message: "Password reset successfully", data: null,success: true });
+      .json({
+        message: "Password reset successfully",
+        data: null,
+        success: true,
+      });
   } catch (error) {
     console.error("Reset Password Error:", error);
     return res
       .status(500)
-      .json({ message: "Internal Server Error", data: null,success: false });
+      .json({ message: "Internal Server Error", data: null, success: false });
   }
 };
 
@@ -157,54 +132,22 @@ export const forget_password = async (
       .json({ message: "OTP sent to your email", data: null, success: true });
   } catch (err) {
     console.error("Failed to send OTP:", err);
-    return res
-      .status(500)
-      .json({
-        message: "Could not send OTP. Try again later.",
-        data: null,
-        success: false,
-      });
+    return res.status(500).json({
+      message: "Could not send OTP. Try again later.",
+      data: null,
+      success: false,
+    });
   }
 };
 
-
-export const resendPassword = async (req: Request, res: Response): Promise<any> => {
+export const resendPassword = async (
+  req: Request,
+  res: Response
+): Promise<any> => {
   try {
-    const token = req.cookies.access_token;
 
-    if (!token) {
-      return res.status(401).json({
-        message: 'Unauthorized: Token missing',
-        success: false,
-        user: null,
-      });
-    }
-
-    // Verify token and extract user ID
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as jwt.JwtPayload;
-    console.log(decoded);
-    
-
-    if (!decoded?.id) {
-      return res.status(401).json({
-        message: 'Invalid token payload',
-        success: false,
-        user: null,
-      });
-    }
-
-    // Fetch user from database
-    const userData = await userModel.findById(decoded.id); console.log(userData);
-    
-    if (!userData || !userData.email) {
-      return res.status(404).json({
-        message: 'User not found',
-        success: false,
-      });
-    }
-
-    const email = userData.email;
-
+    const {email} = req.body;
+ console.log(email)
     // Generate new OTP
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     otpStore[email] = {
@@ -216,23 +159,15 @@ export const resendPassword = async (req: Request, res: Response): Promise<any> 
     await sendOtpEmail(email, otp);
 
     return res.status(200).json({
-      message: 'OTP sent to your email',
+      message: "OTP sent to your email",
       success: true,
       data: null,
     });
-
   } catch (error: any) {
-    console.error('Error in resendPassword:', error.message || error);
-
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        message: 'Invalid token',
-        success: false,
-      });
-    }
-
+    console.error("Error in resendPassword:", error.message || error);
+ console.log(error)
     return res.status(500).json({
-      message: 'Internal Server Error',
+      message: "Internal Server Error",
       success: false,
     });
   }

@@ -55,16 +55,13 @@ export const loginUser=async(req:Request,res:Response):Promise<any>=>{
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '24h' }
     );
-    res.cookie("access_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',   // true on Render
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',  // lowercase!
-      maxAge: 24 * 60 * 60 * 1000,  // 1 day
-    });
-    
+
 
     return res.status(200).send({
       message: 'Login successful',
+      Token:{token,
+        expiresIn:'24h'
+      },
       data: {
         id: userFound._id,
         name: userFound.name,

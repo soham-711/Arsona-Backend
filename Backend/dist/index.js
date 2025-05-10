@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 // server.ts
 const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const db_1 = __importDefault(require("./config/db"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
@@ -27,12 +28,10 @@ dotenv_1.default.config();
 (0, db_1.default)();
 const app = (0, express_1.default)();
 // CORS setup
-// app.use(
-//   cors({
-//     origin: ["https://ecoxchange-e451.onrender.com", "http://localhost:5173"],  // your frontend URLs
-//     credentials: true,
-//   })
-// );
+app.use((0, cors_1.default)({
+    origin: '*', // or specific mobile origin if known
+    credentials: true, // allow cookies
+}));
 // ! when you sending request from frontend send withCredentials True with data
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());

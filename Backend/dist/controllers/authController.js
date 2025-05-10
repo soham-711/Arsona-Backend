@@ -58,14 +58,11 @@ const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             return res.status(401).send({ message: 'Invalid password', data: null, success: false });
         }
         const token = jsonwebtoken_1.default.sign({ email: userFound.email, id: userFound._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '24h' });
-        res.cookie("access_token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', // true on Render
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // lowercase!
-            maxAge: 24 * 60 * 60 * 1000, // 1 day
-        });
         return res.status(200).send({
             message: 'Login successful',
+            Token: { token,
+                expiresIn: '24h'
+            },
             data: {
                 id: userFound._id,
                 name: userFound.name,
